@@ -1,13 +1,13 @@
 from app import app
 
 from flask import render_template, redirect, request, send_file, send_from_directory, abort, jsonify
+from flask.helpers import safe_join
 import os
 from werkzeug.utils import secure_filename
+import base64
 
-
-app.config["file_uploads"] = "app\static\img"
-app.config["get_file"] = "E:\storeS3\\app\static\img"
-app.config["Allowed_extensions"] = ["PNG", "JPG", "JPEG", "GIF", "MP4", "DOCX", "PDF","WEBM"]
+app.config["file_uploads"] = "app/static/"
+app.config["Allowed_extensions"] = ["PNG", "JPG", "JPEG", "GIF", "MP4", "DOCX", "PDF","WEBM","MKV", "BLOB"]
 
 @app.route("/")
 def index():
@@ -29,33 +29,62 @@ def allowedFile(filename):
 def upload_file():
     if request.method == "POST":
 
-        if request.files:
+        if "contact_name" and "contact_email" in request.args:
+            email_val = request.args["contact_email"]
+            name_val = request.args["contact_name"]
+            print(request.args["contact_name"], request.args["contact_email"])
+        
+            if request.files:
 
-            uploadFile = request.files['filename']
+                uploadFile = request.files['filename']
 
-            if uploadFile.filename == "":
-                print("File must have a filename")
-                return jsonify("File must have a filename")
+                if uploadFile.filename == "":
+                    print("File must have a filename")
+                    return jsonify("File must have a filename")
 
-            if not allowedFile(uploadFile.filename):
-                print("That files extensions are not allowed")
-                return jsonify("That files extensions are not allowed")
-            else:
-                filename = secure_filename(uploadFile.filename)
-                uploadFile.save(os.path.join(app.config['file_uploads'], filename))
-            print("file saved")
-            return jsonify("success")
+                if not allowedFile(uploadFile.filename):
+                    if uploadFile.filename.upper()=="BLOB":
+                        video_stream = uploadFile.read()
+                        with open(os.path.join(app.config['file_uploads'], f"{name_val}_file.webm"), 'wb') as f_vid:
+                            f_vid.write(video_stream)
+                            f_vid.close()
+
+                        return jsonify("success")
+
+                    print("That files extensions are not allowed")
+                    return jsonify("That files extensions are not allowed")
+                else:
+                    filename = secure_filename(uploadFile.filename)
+                    uploadFile.save(os.path.join(app.config['file_uploads'], filename))
+                print("file saved")
+                return jsonify("success")
 
     if request.method == "GET":
         if "file_name" in request.args:
             file_name=request.args["file_name"]
-            abs_path = os.path.join(app.config['get_file'], file_name)
-            
-            if not os.path.exists(abs_path):
-                return jsonify(f"{abs_path} does not exists")
+            filename_new = safe_join(app.root_path, "static", file_name)
 
-            if os.path.isfile(abs_path):
-                return send_file(abs_path)
-
+            if os.path.isfile(filename_new):
+                try:
+                    return send_file(filename_new)
+                except Exception as e: 
+                    return jsonify(f"your path exists with error:{e}")
+            else:
+                return jsonify(f"{filename_new} does not exists")
 
     return render_template("index.html")
+
+@app.route("/download-file", methods=["GET"])
+def download_file():
+    if request.method == "GET":
+        if "file_name" in request.args:
+            file_name = request.args["file_name"]
+            filename_new = safe_join(app.root_path, "static", file_name)
+
+            if os.path.isfile(filename_new):
+                try:
+                    return send_file(filename_new, as_attachment=True)
+                except Exception as e: 
+                    return jsonify(f"your path exists with error:{e}")
+            else:
+                return jsonify(f"{filename_new} does not exists")
