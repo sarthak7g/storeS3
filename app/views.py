@@ -53,7 +53,8 @@ def upload_file():
                             f_vid.close()
 
                         # send to kafka
-                        file_url = safe_join(app.root_path, "static", f"{uuid}_file.webm")
+                        # file_url = safe_join(app.root_path, "static", f"{uuid}_file.webm")
+                        file_url = "http://103.107.66.31:9008/upload-file?file_name="+ uuid + "_file.webm"
                         sendtoKafka(file_url, uuid, email_val)
                         return jsonify("success")
 
@@ -64,8 +65,7 @@ def upload_file():
                     uploadFile.save(os.path.join(app.config['file_uploads'], f'{uuid}_file.{ext}'))
 
                     # send to kafka
-                    file_url = safe_join(app.root_path, "static", f'{uuid}_file.{ext}')
-                    print(file_url)
+                    file_url = "http://103.107.66.31:9008/upload-file?file_name="+ uuid + "_file." + ext
                     sendtoKafka(file_url, uuid, email_val)
 
                 print("file saved")
