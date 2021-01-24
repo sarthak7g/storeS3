@@ -6,9 +6,13 @@ from flask.helpers import safe_join
 import os
 from werkzeug.utils import secure_filename
 import base64, json
+from flask_cors import CORS
+
 
 app.config["file_uploads"] = "app/static/"
 app.config["Allowed_extensions"] = ["PNG", "JPG", "JPEG", "GIF", "MP4", "DOCX", "PDF","WEBM","MKV", "BLOB"]
+
+cors = CORS(app, resources={r"/upload-file": {"origins": "http://localhost:3000"}})
 
 @app.route("/")
 def index():
@@ -52,10 +56,6 @@ def upload_file():
                             f_vid.write(video_stream)
                             f_vid.close()
 
-                        # send to kafka
-                        # file_url = safe_join(app.root_path, "static", f"{uuid}_file.webm")
-                        file_url = "http://103.107.66.31:9008/upload-file?file_name="+ uuid + "_file.webm"
-                        sendtoKafka(file_url, uuid, email_val)
                         return jsonify("success")
 
                     print("That files extensions are not allowed")
@@ -63,10 +63,6 @@ def upload_file():
                 else:
                     ext = uploadFile.filename.rsplit(".", 1)[1]
                     uploadFile.save(os.path.join(app.config['file_uploads'], f'{uuid}_file.{ext}'))
-
-                    # send to kafka
-                    file_url = "http://103.107.66.31:9008/upload-file?file_name="+ uuid + "_file." + ext
-                    sendtoKafka(file_url, uuid, email_val)
 
                 print("file saved")
                 return jsonify("success")
@@ -88,28 +84,6 @@ def upload_file():
 
     return render_template("index.html")
 
-def sendtoKafka(video_url, uuid, email):
-
-        url = "https://kong.princetonhive.com/api/Webhooks/Webhooks"
-        version = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-        payload = {
-            "VideoURL": video_url,
-            "UUID": uuid,
-            "Email": email,
-            "CourseId": 11111111,
-            "LessonId": 11111111,
-            "Version": version,
-            "B2bdomain": "null",
-            "reqId": "1c58845f-7b1f-4124-9c4b-841aba91af07"
-        }
-
-        headers = {
-        'Content-Type': 'application/json'
-        }
-        print(json.dumps(payload))
-        response = requests.request("POST", url, headers=headers, data=json.dumps(payload))
-
-        print(response)
 
 
 
@@ -128,3 +102,20 @@ def download_file():
             else:
                 return jsonify(f"{filename_new} does not exists")
 
+
+@app.route("/delete-file", methods=["GET"])
+def delete_file():
+    if request.method == "GET":
+        if "file_name" in request.args:
+            file_name = request.args["file_name"]
+            filename_new = safe_join(app.root_path, "static", file_name)
+
+            if os.path.isfile(filename_new):
+                try:
+                    os.remove(filename_new)
+                    return jsonify('success')
+                except Exception as e: 
+                    return jsonify(f"your path exists with error:{e}")
+            else:
+                return jsonify(f"{filename_new} does not exists")
+    return render_template("index.html")

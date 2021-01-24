@@ -4,7 +4,10 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY requirements.txt requirements.txt
-RUN  python3 -m pip install -r requirements.txt --no-cache-dir
+
+RUN apk add --update build-base ca-certificates python3 python3-dev ffmpeg
+
+RUN  python3 -m pip install -r requirements.txt --no-cache-dir 
 
 COPY . .
 
