@@ -12,7 +12,7 @@ from flask_cors import CORS
 app.config["file_uploads"] = "app/static/"
 app.config["Allowed_extensions"] = ["PNG", "JPG", "JPEG", "GIF", "MP4", "DOCX", "PDF","WEBM","MKV", "BLOB"]
 
-cors = CORS(app, resources={r"/upload-file": {"origins": "http://localhost:3000"}})
+cors = CORS(app, resources={r"/upload-file": {"origins": "*"}})
 
 @app.route("/")
 def index():
