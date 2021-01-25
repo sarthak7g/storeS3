@@ -16,7 +16,7 @@ cors = CORS(app, resources={r"/upload-file": {"origins": "http://localhost:3000"
 
 @app.route("/")
 def index():
-    return "<h1>Welcome to the store</h1>"
+    return "<h1>Welcome to the Store</h1>"
 
 
 def allowedFile(filename):
